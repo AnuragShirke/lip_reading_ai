@@ -26,15 +26,12 @@ async def lifespan(app: FastAPI):
 # Initialize FastAPI app with lifespan handler
 app = FastAPI(title="Lip Reading API", lifespan=lifespan)
 
-# Add CORS middleware
-# Get allowed origins from environment variable or use default with wildcard
-allowed_origins = os.environ.get("CORS_ORIGIN", "https://lip-reading-frontend.onrender.com,http://localhost:3000,http://localhost")
-origins = [origin.strip() for origin in allowed_origins.split(",")] + ["*"]
-print(f"Allowed CORS origins: {origins}")
+# Add CORS middleware with wildcard to allow all origins
+print("Allowing all origins for CORS")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # Allow all origins
     allow_credentials=False,  # Set to False to work with credentials: 'omit'
     allow_methods=["*"],
     allow_headers=["*"],
@@ -283,11 +280,16 @@ def load_model():
                 all_files_exist = False
                 print(f"Downloading 96 epoch model file {filename} from Hugging Face")
                 try:
-                    hf_hub_download(
+                    file_path = hf_hub_download(
                         repo_id=repo_id,
                         filename=f"model-96/{filename}",
-                        local_dir=models_dir
+                        cache_dir=models_dir
                     )
+                    print(f"Downloaded to: {file_path}")
+                    # Ensure the file is in the expected location
+                    if not os.path.exists(os.path.join(model_96_dir, filename)):
+                        os.makedirs(os.path.dirname(os.path.join(model_96_dir, filename)), exist_ok=True)
+                        shutil.copy(file_path, os.path.join(model_96_dir, filename))
                     print(f"Downloaded {filename} successfully")
                 except Exception as download_error:
                     print(f"Error downloading {filename}: {download_error}")
@@ -329,11 +331,16 @@ def load_model():
                 all_files_exist = False
                 print(f"Downloading 50 epoch model file {filename} from Hugging Face")
                 try:
-                    hf_hub_download(
+                    file_path = hf_hub_download(
                         repo_id=repo_id,
                         filename=f"model-50/{filename}",
-                        local_dir=models_dir
+                        cache_dir=models_dir
                     )
+                    print(f"Downloaded to: {file_path}")
+                    # Ensure the file is in the expected location
+                    if not os.path.exists(os.path.join(model_50_dir, filename)):
+                        os.makedirs(os.path.dirname(os.path.join(model_50_dir, filename)), exist_ok=True)
+                        shutil.copy(file_path, os.path.join(model_50_dir, filename))
                     print(f"Downloaded {filename} successfully")
                 except Exception as download_error:
                     print(f"Error downloading {filename}: {download_error}")
