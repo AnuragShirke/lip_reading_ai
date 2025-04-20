@@ -10,6 +10,9 @@ import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { uploadVideo } from "@/services/api";
 
+// Get API URL from environment or use default
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 const Index = () => {
   // State
   const [currentVideo, setCurrentVideo] = useState<string | null>(null);
@@ -64,14 +67,14 @@ const Index = () => {
         // If the backend returns a video URL, use it instead of the local object URL
         if (result.video_url) {
           // Create a full URL by combining the API URL with the video URL path
-          const fullVideoUrl = `http://localhost:8000${result.video_url}`;
+          const fullVideoUrl = `${API_URL}${result.video_url}`;
           console.log('Using video URL from backend:', fullVideoUrl);
           setCurrentVideo(fullVideoUrl);
         }
 
         // If the backend returns a thumbnail URL, use it
         if (result.thumbnail_url) {
-          const fullThumbnailUrl = `http://localhost:8000${result.thumbnail_url}`;
+          const fullThumbnailUrl = `${API_URL}${result.thumbnail_url}`;
           console.log('Using thumbnail URL from backend:', fullThumbnailUrl);
           setCurrentThumbnail(fullThumbnailUrl);
         } else {
@@ -85,8 +88,8 @@ const Index = () => {
           videoName: file.name,
           prediction: result.prediction,
           confidence: result.confidence,
-          videoUrl: result.video_url ? `http://localhost:8000${result.video_url}` : videoUrl, // Use backend URL if available
-          thumbnailUrl: result.thumbnail_url ? `http://localhost:8000${result.thumbnail_url}` : null // Include thumbnail URL if available
+          videoUrl: result.video_url ? `${API_URL}${result.video_url}` : videoUrl, // Use backend URL if available
+          thumbnailUrl: result.thumbnail_url ? `${API_URL}${result.thumbnail_url}` : null // Include thumbnail URL if available
         };
 
         setHistory(prev => [historyItem, ...prev]);
