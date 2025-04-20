@@ -1,12 +1,21 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Define the backend URL
 const BACKEND_URL = process.env.BACKEND_URL || 'https://lip-reading-backend.onrender.com';
+
+// Check if dist directory exists
+const distDir = path.join(__dirname, 'dist');
+if (!fs.existsSync(distDir)) {
+  console.log('Dist directory not found. Creating empty directory.');
+  fs.mkdirSync(distDir, { recursive: true });
+  fs.writeFileSync(path.join(distDir, 'index.html'), '<html><body><h1>Building application...</h1><p>Please wait a moment and refresh.</p></body></html>');
+}
 
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, 'dist')));

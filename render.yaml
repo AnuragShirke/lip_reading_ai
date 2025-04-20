@@ -15,8 +15,10 @@ services:
   - type: web
     name: lip-reading-frontend
     env: node
-    buildCommand: cd frontend && npm install && npm run build
+    buildCommand: cd frontend && npm install --production=false && npm run build
     startCommand: cd frontend && npm start
     envVars:
       - key: BACKEND_URL
         value: https://lip-reading-backend.onrender.com
+      - key: NODE_ENV
+        value: production
