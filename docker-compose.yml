@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    volumes:
+      - ./Lip_Reading_Using_Deep_Learning:/app/Lip_Reading_Using_Deep_Learning
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_DIR=/app/Lip_Reading_Using_Deep_Learning/models - checkpoint 96
+      - MODEL_PATH=/app/Lip_Reading_Using_Deep_Learning/models - checkpoint 96/checkpoint
+      - USE_DUMMY_MODEL=false
+      - USE_ENSEMBLE=true
+    command: ["sh", "-c", "python check_model.py && uvicorn main:app --host 0.0.0.0 --port 8000"]
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./whisper-words-flow
+      args:
+        - VITE_API_URL=http://localhost:8000
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
