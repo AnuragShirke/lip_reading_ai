@@ -19,21 +19,60 @@ This is a lip reading application that uses deep learning to predict spoken word
 
 ## Deployment
 
-This repository is set up for deployment on free hosting platforms like Render.
+This repository is set up for deployment on Render using a Blueprint.
 
-### Frontend
+### Option 1: Deploy with Render Blueprint (Recommended)
 
-The frontend is a React application built with Vite and TypeScript.
+1. Fork this repository to your GitHub account
+2. Sign up for [Render](https://render.com) if you haven't already
+3. Click the "New +" button and select "Blueprint"
+4. Connect your GitHub account and select this repository
+5. Render will automatically deploy both the frontend and backend services
+
+### Option 2: Manual Deployment
+
+#### Backend Deployment
+
+1. Create a new Web Service on Render
+2. Connect your GitHub repository
+3. Configure the service:
+   - Name: lip-reading-backend
+   - Environment: Python
+   - Build Command: `pip install -r backend/requirements.txt`
+   - Start Command: `cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - Environment Variables:
+     - `USE_DUMMY_MODEL`: false
+     - `HF_REPO_ID`: AnuragShirke/lip-reading-models
+
+#### Frontend Deployment
+
+1. Create a new Web Service on Render
+2. Connect your GitHub repository
+3. Configure the service:
+   - Name: lip-reading-frontend
+   - Environment: Node
+   - Build Command: `cd frontend && npm install && npm run build`
+   - Start Command: `cd frontend && npm start`
+   - Environment Variables:
+     - `BACKEND_URL`: https://lip-reading-backend.onrender.com (replace with your backend URL)
+
+## Local Development
 
 ### Backend
 
-The backend is a FastAPI application that processes videos and runs the lip reading model.
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
-## Getting Started
+### Frontend
 
-1. Clone this repository
-2. Run `docker-compose up -d` to start the application
-3. Open your browser and navigate to `http://localhost`
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ## License
 
