@@ -11,13 +11,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import uuid
+from huggingface_hub import hf_hub_download
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="Lip Reading API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for FastAPI"""
+    # Load model on startup
+    load_model()
+    yield
+    # Clean up on shutdown
+    print("Shutting down application")
+
+# Initialize FastAPI app with lifespan handler
+app = FastAPI(title="Lip Reading API", lifespan=lifespan)
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"],  # Allow all origins temporarily
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -239,46 +251,100 @@ def load_model():
         print("Dummy model created successfully")
         return
 
-    # Try to load 96 epoch model
-    try:
-        print("Loading 96 epoch model...")
-        model_96_dir = os.environ.get('MODEL_DIR', '/app/Lip_Reading_Using_Deep_Learning/models - checkpoint 96')
-        model_96_path = os.environ.get('MODEL_PATH', os.path.join(model_96_dir, 'checkpoint'))
+    # Create models directory if it doesn't exist
+    models_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+    os.makedirs(models_dir, exist_ok=True)
 
-        # Check if model directory exists
-        if os.path.exists(model_96_dir):
-            print(f"96 epoch model directory exists. Contents: {os.listdir(model_96_dir)}")
+    # Define Hugging Face repository info
+    repo_id = os.environ.get('HF_REPO_ID', 'AnuragShirke/lip-reading-models')  # Your actual repo
+
+    # Try to load 96 epoch model from Hugging Face
+    try:
+        print("Loading 96 epoch model from Hugging Face...")
+        model_96_dir = os.path.join(models_dir, "model-96")
+        os.makedirs(model_96_dir, exist_ok=True)
+
+        # Download all model files if they don't exist locally
+        model_files = [
+            "checkpoint",
+            "checkpoint.data-00000-of-00001",
+            "checkpoint.index"
+        ]
+
+        all_files_exist = True
+        for filename in model_files:
+            file_path = os.path.join(model_96_dir, filename)
+            if not os.path.exists(file_path):
+                all_files_exist = False
+                print(f"Downloading 96 epoch model file {filename} from Hugging Face")
+                try:
+                    hf_hub_download(
+                        repo_id=repo_id,
+                        filename=f"model-96/{filename}",
+                        local_dir=models_dir
+                    )
+                    print(f"Downloaded {filename} successfully")
+                except Exception as download_error:
+                    print(f"Error downloading {filename}: {download_error}")
+                    all_files_exist = False
+
+        # Load the model if all files exist
+        if all_files_exist:
+            model_96_path = os.path.join(model_96_dir, "checkpoint")
+            print(f"Loading 96 epoch model from {model_96_path}")
             model_96 = create_model()
             model_96.load_weights(model_96_path)
             optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=0.0001)
             model_96.compile(optimizer=optimizer, loss='CTCLoss')
             print("96 epoch model loaded successfully")
         else:
-            print(f"96 epoch model directory does not exist: {model_96_dir}")
+            print("Some 96 epoch model files are missing")
             model_96 = None
     except Exception as e:
         print(f"Error loading 96 epoch model: {e}")
         model_96 = None
 
-    # Try to load 50 epoch model
+    # Try to load 50 epoch model from Hugging Face
     try:
-        print("Loading 50 epoch model...")
-        model_50_paths = [
-            '/app/Lip_Reading_Using_Deep_Learning/models - checkpoint 50/models/checkpoint',
-            './Lip_Reading_Using_Deep_Learning/models - checkpoint 50/models/checkpoint'
+        print("Loading 50 epoch model from Hugging Face...")
+        model_50_dir = os.path.join(models_dir, "model-50")
+        os.makedirs(model_50_dir, exist_ok=True)
+
+        # Download all model files if they don't exist locally
+        model_files = [
+            "checkpoint",
+            "checkpoint.data-00000-of-00001",
+            "checkpoint.index"
         ]
 
-        for path in model_50_paths:
-            if os.path.exists(path):
-                print(f"50 epoch model path exists: {path}")
-                model_50 = create_model()
-                model_50.load_weights(path)
-                optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=0.0001)
-                model_50.compile(optimizer=optimizer, loss='CTCLoss')
-                print("50 epoch model loaded successfully")
-                break
+        all_files_exist = True
+        for filename in model_files:
+            file_path = os.path.join(model_50_dir, filename)
+            if not os.path.exists(file_path):
+                all_files_exist = False
+                print(f"Downloading 50 epoch model file {filename} from Hugging Face")
+                try:
+                    hf_hub_download(
+                        repo_id=repo_id,
+                        filename=f"model-50/{filename}",
+                        local_dir=models_dir
+                    )
+                    print(f"Downloaded {filename} successfully")
+                except Exception as download_error:
+                    print(f"Error downloading {filename}: {download_error}")
+                    all_files_exist = False
+
+        # Load the model if all files exist
+        if all_files_exist:
+            model_50_path = os.path.join(model_50_dir, "checkpoint")
+            print(f"Loading 50 epoch model from {model_50_path}")
+            model_50 = create_model()
+            model_50.load_weights(model_50_path)
+            optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=0.0001)
+            model_50.compile(optimizer=optimizer, loss='CTCLoss')
+            print("50 epoch model loaded successfully")
         else:
-            print("Could not find 50 epoch model")
+            print("Some 50 epoch model files are missing")
             model_50 = None
     except Exception as e:
         print(f"Error loading 50 epoch model: {e}")
@@ -349,10 +415,7 @@ def load_video(path: str) -> tf.Tensor:
     print(f"Processed video with {len(frames)} frames, shape: {normalized_frames.shape}")
     return normalized_frames
 
-@app.on_event("startup")
-async def startup_event():
-    """Load model on startup"""
-    load_model()
+# Startup event is now handled by the lifespan context manager above
 
 @app.get("/")
 async def root():
