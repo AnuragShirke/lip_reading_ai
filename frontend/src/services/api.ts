@@ -27,7 +27,7 @@ export const uploadVideo = async (file: File): Promise<PredictionResponse> => {
       body: formData,
       // Add CORS headers
       mode: 'cors',
-      credentials: 'include',
+      credentials: 'omit',
       headers: {
         'Accept': 'application/json',
       },
