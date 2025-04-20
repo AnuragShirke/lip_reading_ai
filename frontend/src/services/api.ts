@@ -7,8 +7,8 @@ interface PredictionResponse {
   thumbnail_url?: string; // URL to the video thumbnail
 }
 
-// Always use localhost:8000 when accessing from a browser
-const API_URL = 'http://localhost:8000';
+// Use environment variable for API URL if available, otherwise use localhost
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 console.log('Using API URL:', API_URL);
 

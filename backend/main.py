@@ -11,13 +11,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import uuid
+from contextlib import asynccontextmanager
 
-app = FastAPI(title="Lip Reading API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan event handler for FastAPI"""
+    # Load model on startup
+    load_model()
+    yield
+    # Clean up on shutdown
+    print("Shutting down application")
+
+# Initialize FastAPI app with lifespan handler
+app = FastAPI(title="Lip Reading API", lifespan=lifespan)
 
 # Add CORS middleware
+# Get allowed origins from environment variable or use default
+allowed_origins = os.environ.get("CORS_ORIGIN", "http://localhost:3000,http://localhost")
+origins = [origin.strip() for origin in allowed_origins.split(",")]
+print(f"Allowed CORS origins: {origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -349,10 +365,7 @@ def load_video(path: str) -> tf.Tensor:
     print(f"Processed video with {len(frames)} frames, shape: {normalized_frames.shape}")
     return normalized_frames
 
-@app.on_event("startup")
-async def startup_event():
-    """Load model on startup"""
-    load_model()
+# Lifespan handler is defined at the top of the file
 
 @app.get("/")
 async def root():
