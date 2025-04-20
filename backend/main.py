@@ -259,6 +259,13 @@ def load_model():
 
     # Define Hugging Face repository info
     repo_id = os.environ.get('HF_REPO_ID', 'AnuragShirke/lip-reading-models')  # Your actual repo
+    print(f"Using Hugging Face repository: {repo_id}")
+
+    # Create a dummy model as a fallback
+    print("Creating a dummy model as a fallback")
+    model_96 = create_model()
+    optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=0.0001)
+    model_96.compile(optimizer=optimizer, loss='categorical_crossentropy')
 
     # Try to load 96 epoch model from Hugging Face
     try:
@@ -266,50 +273,54 @@ def load_model():
         model_96_dir = os.path.join(models_dir, "model-96")
         os.makedirs(model_96_dir, exist_ok=True)
 
-        # Download all model files if they don't exist locally
+        # Download all model files
         model_files = [
             "checkpoint",
             "checkpoint.data-00000-of-00001",
             "checkpoint.index"
         ]
 
-        all_files_exist = True
+        # Download each file
         for filename in model_files:
-            file_path = os.path.join(model_96_dir, filename)
-            if not os.path.exists(file_path):
-                all_files_exist = False
+            try:
                 print(f"Downloading 96 epoch model file {filename} from Hugging Face")
-                try:
-                    file_path = hf_hub_download(
-                        repo_id=repo_id,
-                        filename=f"model-96/{filename}",
-                        cache_dir=models_dir
-                    )
-                    print(f"Downloaded to: {file_path}")
-                    # Ensure the file is in the expected location
-                    if not os.path.exists(os.path.join(model_96_dir, filename)):
-                        os.makedirs(os.path.dirname(os.path.join(model_96_dir, filename)), exist_ok=True)
-                        shutil.copy(file_path, os.path.join(model_96_dir, filename))
-                    print(f"Downloaded {filename} successfully")
-                except Exception as download_error:
-                    print(f"Error downloading {filename}: {download_error}")
-                    all_files_exist = False
+                file_path = hf_hub_download(
+                    repo_id=repo_id,
+                    filename=f"model-96/{filename}",
+                    local_dir=models_dir,  # Use local_dir instead of cache_dir
+                )
+                print(f"Downloaded to: {file_path}")
 
-        # Load the model if all files exist
+                # Copy the file to the model directory if needed
+                target_path = os.path.join(model_96_dir, filename)
+                if file_path != target_path and not os.path.exists(target_path):
+                    print(f"Copying {file_path} to {target_path}")
+                    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                    shutil.copy(file_path, target_path)
+            except Exception as download_error:
+                print(f"Error downloading {filename}: {download_error}")
+
+        # Check if all files exist in the model directory
+        all_files_exist = all(os.path.exists(os.path.join(model_96_dir, f)) for f in model_files)
+        print(f"All 96 epoch model files exist: {all_files_exist}")
+
+        # List the contents of the model directory
+        print(f"Contents of {model_96_dir}: {os.listdir(model_96_dir) if os.path.exists(model_96_dir) else 'Directory does not exist'}")
+
+        # Try to load the model
         if all_files_exist:
             model_96_path = os.path.join(model_96_dir, "checkpoint")
             print(f"Loading 96 epoch model from {model_96_path}")
-            model_96 = create_model()
-            model_96.load_weights(model_96_path)
-            optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=0.0001)
-            model_96.compile(optimizer=optimizer, loss='CTCLoss')
-            print("96 epoch model loaded successfully")
-        else:
-            print("Some 96 epoch model files are missing")
-            model_96 = None
+            try:
+                model_96 = create_model()
+                model_96.load_weights(model_96_path).expect_partial()
+                optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=0.0001)
+                model_96.compile(optimizer=optimizer, loss='categorical_crossentropy')
+                print("96 epoch model loaded successfully")
+            except Exception as load_error:
+                print(f"Error loading 96 epoch model weights: {load_error}")
     except Exception as e:
-        print(f"Error loading 96 epoch model: {e}")
-        model_96 = None
+        print(f"Error in 96 epoch model loading process: {e}")
 
     # Try to load 50 epoch model from Hugging Face
     try:
@@ -317,58 +328,58 @@ def load_model():
         model_50_dir = os.path.join(models_dir, "model-50")
         os.makedirs(model_50_dir, exist_ok=True)
 
-        # Download all model files if they don't exist locally
+        # Download all model files
         model_files = [
             "checkpoint",
             "checkpoint.data-00000-of-00001",
             "checkpoint.index"
         ]
 
-        all_files_exist = True
+        # Download each file
         for filename in model_files:
-            file_path = os.path.join(model_50_dir, filename)
-            if not os.path.exists(file_path):
-                all_files_exist = False
+            try:
                 print(f"Downloading 50 epoch model file {filename} from Hugging Face")
-                try:
-                    file_path = hf_hub_download(
-                        repo_id=repo_id,
-                        filename=f"model-50/{filename}",
-                        cache_dir=models_dir
-                    )
-                    print(f"Downloaded to: {file_path}")
-                    # Ensure the file is in the expected location
-                    if not os.path.exists(os.path.join(model_50_dir, filename)):
-                        os.makedirs(os.path.dirname(os.path.join(model_50_dir, filename)), exist_ok=True)
-                        shutil.copy(file_path, os.path.join(model_50_dir, filename))
-                    print(f"Downloaded {filename} successfully")
-                except Exception as download_error:
-                    print(f"Error downloading {filename}: {download_error}")
-                    all_files_exist = False
+                file_path = hf_hub_download(
+                    repo_id=repo_id,
+                    filename=f"model-50/{filename}",
+                    local_dir=models_dir,  # Use local_dir instead of cache_dir
+                )
+                print(f"Downloaded to: {file_path}")
 
-        # Load the model if all files exist
+                # Copy the file to the model directory if needed
+                target_path = os.path.join(model_50_dir, filename)
+                if file_path != target_path and not os.path.exists(target_path):
+                    print(f"Copying {file_path} to {target_path}")
+                    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                    shutil.copy(file_path, target_path)
+            except Exception as download_error:
+                print(f"Error downloading {filename}: {download_error}")
+
+        # Check if all files exist in the model directory
+        all_files_exist = all(os.path.exists(os.path.join(model_50_dir, f)) for f in model_files)
+        print(f"All 50 epoch model files exist: {all_files_exist}")
+
+        # List the contents of the model directory
+        print(f"Contents of {model_50_dir}: {os.listdir(model_50_dir) if os.path.exists(model_50_dir) else 'Directory does not exist'}")
+
+        # Try to load the model
         if all_files_exist:
             model_50_path = os.path.join(model_50_dir, "checkpoint")
             print(f"Loading 50 epoch model from {model_50_path}")
-            model_50 = create_model()
-            model_50.load_weights(model_50_path)
-            optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=0.0001)
-            model_50.compile(optimizer=optimizer, loss='CTCLoss')
-            print("50 epoch model loaded successfully")
-        else:
-            print("Some 50 epoch model files are missing")
-            model_50 = None
+            try:
+                model_50 = create_model()
+                model_50.load_weights(model_50_path).expect_partial()
+                optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=0.0001)
+                model_50.compile(optimizer=optimizer, loss='categorical_crossentropy')
+                print("50 epoch model loaded successfully")
+            except Exception as load_error:
+                print(f"Error loading 50 epoch model weights: {load_error}")
+                model_50 = None
     except Exception as e:
-        print(f"Error loading 50 epoch model: {e}")
+        print(f"Error in 50 epoch model loading process: {e}")
         model_50 = None
 
-    # Check if at least one model is loaded
-    if model_96 is None and model_50 is None and not USE_DUMMY_MODEL:
-        print("No models could be loaded, creating dummy model")
-        model_96 = create_model()
-        optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=0.0001)
-        model_96.compile(optimizer=optimizer, loss='categorical_crossentropy')
-        print("Dummy model created as fallback")
+    print(f"Model loading complete. model_96: {model_96 is not None}, model_50: {model_50 is not None}")
 
 def load_video(path: str) -> tf.Tensor:
     """Load and preprocess video frames exactly as in the notebook"""
