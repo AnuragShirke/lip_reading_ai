@@ -26,14 +26,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Lip Reading API", lifespan=lifespan)
 
 # Add CORS middleware
-# Get allowed origins from environment variable or use default
-allowed_origins = os.environ.get("CORS_ORIGIN", "http://localhost:3000,http://localhost")
-origins = [origin.strip() for origin in allowed_origins.split(",")]
-print(f"Allowed CORS origins: {origins}")
+# Allow all origins temporarily to fix CORS issues
+print("Allowing all origins for CORS")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # Allow all origins temporarily
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
